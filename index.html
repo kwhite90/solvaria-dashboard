@@ -212,6 +212,63 @@
     font-weight: 700;
     color: var(--navy);
     margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .client-name-text {
+    cursor: pointer;
+  }
+
+  .client-name-text:hover {
+    color: var(--cyan);
+  }
+
+  .client-actions {
+    display: flex;
+    gap: 8px;
+    margin-left: auto;
+  }
+
+  .client-action-icon {
+    cursor: pointer;
+    color: var(--gray-mid);
+    font-size: 1rem;
+    padding: 4px;
+    transition: color 0.2s;
+  }
+
+  .client-action-icon:hover {
+    color: var(--cyan);
+  }
+
+  .client-action-icon.delete:hover {
+    color: var(--red);
+  }
+
+  .add-client-section {
+    margin-bottom: 20px;
+    text-align: right;
+  }
+
+  .add-client-btn {
+    background: var(--navy);
+    color: var(--white);
+    border: none;
+    padding: 12px 24px;
+    border-radius: 6px;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .add-client-btn:hover {
+    background: var(--navy-mid);
   }
 
   .client-owner {
@@ -618,14 +675,7 @@ Example formats I can parse:
 • JJ and Charles working on performance issue"></textarea>
     <div style="display: flex; align-items: center; gap: 12px;">
       <select class="client-selector" id="client-selector">
-        <option value="">Select client to add tasks to...</option>
-        <option value="cadence">Cadence (Angel)</option>
-        <option value="gaming-labs">Gaming Labs (Angel)</option>
-        <option value="ellsworth">Ellsworth (Angel)</option>
-        <option value="gem">GEM (Pamela)</option>
-        <option value="efw">EFW (Pamela)</option>
-        <option value="hilb">Hilb (Pamela)</option>
-        <option value="first-key">First Key (Pamela)</option>
+        <!-- Options populated dynamically by JavaScript -->
       </select>
       <button class="parse-btn" onclick="parseOutlookNotes()">Extract & Add Tasks</button>
     </div>
@@ -653,6 +703,11 @@ Example formats I can parse:
       <div class="summary-value" id="completed-count">0</div>
       <div class="summary-sublabel">This week</div>
     </div>
+  </div>
+
+  <!-- Add Client Section -->
+  <div class="add-client-section">
+    <button class="add-client-btn" onclick="showAddClient()">+ Add New Client</button>
   </div>
 
   <!-- Tabs -->
@@ -684,7 +739,7 @@ Example formats I can parse:
   </div>
 </main>
 
-<!-- Edit Modal -->
+<!-- Edit Task Modal -->
 <div class="modal" id="edit-modal">
   <div class="modal-content">
     <div class="modal-header" id="modal-title">Edit Task</div>
@@ -696,6 +751,30 @@ Example formats I can parse:
     <div class="editor-buttons">
       <button class="save-btn" onclick="saveTaskEdit()">Save Changes</button>
       <button class="cancel-btn" onclick="closeModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Client Management Modal -->
+<div class="modal" id="client-modal">
+  <div class="modal-content">
+    <div class="modal-header" id="client-modal-title">Add New Client</div>
+    <div class="modal-body">
+      <input type="text" class="modal-input" id="client-name-input" placeholder="Client name (e.g., Acme Corp)">
+      <select class="modal-input" id="client-owner-input">
+        <option value="">Select owner...</option>
+        <option value="Angel Smith">Angel Smith</option>
+        <option value="Pamela Craven">Pamela Craven</option>
+      </select>
+      <select class="modal-input" id="client-status-input">
+        <option value="monitoring">Monitoring</option>
+        <option value="important">Important</option>
+        <option value="critical">Critical</option>
+      </select>
+    </div>
+    <div class="editor-buttons">
+      <button class="save-btn" id="client-save-btn" onclick="saveClient()">Add Client</button>
+      <button class="cancel-btn" onclick="closeClientModal()">Cancel</button>
     </div>
   </div>
 </div>
@@ -810,16 +889,22 @@ function showSyncStatus() {
 
 // Calculate and update summary stats
 function updateStats() {
+  let angelCount = 0;
+  let pamelaCount = 0;
   let criticalCount = 0;
   let completedCount = 0;
   
   Object.values(dashboardData.clients).forEach(client => {
+    if (client.owner === 'Angel Smith') angelCount++;
+    if (client.owner === 'Pamela Craven') pamelaCount++;
     if (client.status === 'critical') criticalCount++;
     client.tasks.forEach(task => {
       if (task.completed) completedCount++;
     });
   });
   
+  document.getElementById('angel-count').textContent = angelCount;
+  document.getElementById('pamela-count').textContent = pamelaCount;
   document.getElementById('critical-count').textContent = criticalCount;
   document.getElementById('completed-count').textContent = completedCount;
 }
@@ -894,7 +979,13 @@ function renderClientCard(clientId) {
     <div class="client-card" data-client="${clientId}">
       <div class="client-header">
         <div class="client-name-section">
-          <div class="client-name">${client.name}</div>
+          <div class="client-name">
+            <span class="client-name-text" onclick="editClientName('${clientId}')">${client.name}</span>
+            <div class="client-actions">
+              <span class="client-action-icon" onclick="editClientName('${clientId}')" title="Rename client">✏️</span>
+              <span class="client-action-icon delete" onclick="deleteClient('${clientId}')" title="Delete client">🗑️</span>
+            </div>
+          </div>
           <div class="client-owner">Owner: ${client.owner}</div>
         </div>
         <div class="status-badge ${client.status}" onclick="cycleStatus('${clientId}')" title="Click to change status">
@@ -955,14 +1046,27 @@ function formatDueDate(dueDate) {
 
 // Render all clients
 function renderClients() {
-  const angelClients = ['cadence', 'gaming-labs', 'ellsworth'];
-  const pamelaClients = ['gem', 'efw', 'hilb', 'first-key'];
+  const angelClients = Object.keys(dashboardData.clients).filter(id => 
+    dashboardData.clients[id].owner === 'Angel Smith'
+  );
+  const pamelaClients = Object.keys(dashboardData.clients).filter(id => 
+    dashboardData.clients[id].owner === 'Pamela Craven'
+  );
   
-  document.getElementById('angel-grid').innerHTML = angelClients.map(id => renderClientCard(id)).join('');
-  document.getElementById('pamela-grid').innerHTML = pamelaClients.map(id => renderClientCard(id)).join('');
-  document.getElementById('all-grid').innerHTML = [...angelClients, ...pamelaClients].map(id => renderClientCard(id)).join('');
+  document.getElementById('angel-grid').innerHTML = angelClients.length > 0 
+    ? angelClients.map(id => renderClientCard(id)).join('')
+    : '<div style="color: var(--gray-mid); padding: 20px; text-align: center;">No clients yet. Click "Add New Client" to get started.</div>';
+    
+  document.getElementById('pamela-grid').innerHTML = pamelaClients.length > 0
+    ? pamelaClients.map(id => renderClientCard(id)).join('')
+    : '<div style="color: var(--gray-mid); padding: 20px; text-align: center;">No clients yet. Click "Add New Client" to get started.</div>';
+    
+  document.getElementById('all-grid').innerHTML = [...angelClients, ...pamelaClients].length > 0
+    ? [...angelClients, ...pamelaClients].map(id => renderClientCard(id)).join('')
+    : '<div style="color: var(--gray-mid); padding: 20px; text-align: center;">No clients yet. Click "Add New Client" to get started.</div>';
   
   updateStats();
+  updateClientSelector();
 }
 
 // Tab switching
@@ -1183,6 +1287,130 @@ function parseOutlookNotes() {
   }
 }
 
+// Client management functions
+let editingClient = null;
+
+function showAddClient() {
+  editingClient = null;
+  document.getElementById('client-modal-title').textContent = 'Add New Client';
+  document.getElementById('client-save-btn').textContent = 'Add Client';
+  document.getElementById('client-name-input').value = '';
+  document.getElementById('client-owner-input').value = '';
+  document.getElementById('client-status-input').value = 'monitoring';
+  document.getElementById('client-modal').classList.add('active');
+}
+
+function editClientName(clientId) {
+  const client = dashboardData.clients[clientId];
+  editingClient = clientId;
+  
+  document.getElementById('client-modal-title').textContent = 'Edit Client';
+  document.getElementById('client-save-btn').textContent = 'Save Changes';
+  document.getElementById('client-name-input').value = client.name;
+  document.getElementById('client-owner-input').value = client.owner;
+  document.getElementById('client-status-input').value = client.status;
+  document.getElementById('client-modal').classList.add('active');
+}
+
+function deleteClient(clientId) {
+  const client = dashboardData.clients[clientId];
+  const taskCount = client.tasks.length;
+  
+  const confirmMsg = taskCount > 0 
+    ? `Are you sure you want to delete "${client.name}"? This will also delete ${taskCount} task(s).`
+    : `Are you sure you want to delete "${client.name}"?`;
+  
+  if (!confirm(confirmMsg)) return;
+  
+  delete dashboardData.clients[clientId];
+  saveData();
+  renderClients();
+}
+
+function saveClient() {
+  const name = document.getElementById('client-name-input').value.trim();
+  const owner = document.getElementById('client-owner-input').value;
+  const status = document.getElementById('client-status-input').value;
+  
+  if (!name) {
+    alert('Please enter a client name');
+    return;
+  }
+  
+  if (!owner) {
+    alert('Please select an owner');
+    return;
+  }
+  
+  if (editingClient) {
+    // Editing existing client
+    dashboardData.clients[editingClient].name = name;
+    dashboardData.clients[editingClient].owner = owner;
+    dashboardData.clients[editingClient].status = status;
+  } else {
+    // Adding new client
+    const clientId = name.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+    
+    // Check if client ID already exists
+    if (dashboardData.clients[clientId]) {
+      alert('A client with this name already exists. Please use a different name.');
+      return;
+    }
+    
+    dashboardData.clients[clientId] = {
+      id: clientId,
+      name: name,
+      owner: owner,
+      status: status,
+      tasks: []
+    };
+  }
+  
+  closeClientModal();
+  saveData();
+  renderClients();
+}
+
+function closeClientModal() {
+  document.getElementById('client-modal').classList.remove('active');
+  editingClient = null;
+}
+
+function updateClientSelector() {
+  const selector = document.getElementById('client-selector');
+  const currentValue = selector.value;
+  
+  const angelClients = Object.keys(dashboardData.clients).filter(id => 
+    dashboardData.clients[id].owner === 'Angel Smith'
+  );
+  const pamelaClients = Object.keys(dashboardData.clients).filter(id => 
+    dashboardData.clients[id].owner === 'Pamela Craven'
+  );
+  
+  let options = '<option value="">Select client to add tasks to...</option>';
+  
+  if (angelClients.length > 0) {
+    options += '<optgroup label="Angel\'s Clients">';
+    angelClients.forEach(id => {
+      const client = dashboardData.clients[id];
+      options += `<option value="${id}">${client.name}</option>`;
+    });
+    options += '</optgroup>';
+  }
+  
+  if (pamelaClients.length > 0) {
+    options += '<optgroup label="Pamela\'s Clients">';
+    pamelaClients.forEach(id => {
+      const client = dashboardData.clients[id];
+      options += `<option value="${id}">${client.name}</option>`;
+    });
+    options += '</optgroup>';
+  }
+  
+  selector.innerHTML = options;
+  selector.value = currentValue;
+}
+
 // Initialize
 loadData();
 renderClients();
@@ -1191,6 +1419,12 @@ renderClients();
 document.getElementById('edit-modal').addEventListener('click', function(e) {
   if (e.target === this) {
     closeModal();
+  }
+});
+
+document.getElementById('client-modal').addEventListener('click', function(e) {
+  if (e.target === this) {
+    closeClientModal();
   }
 });
 </script>
