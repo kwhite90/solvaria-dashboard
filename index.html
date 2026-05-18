@@ -986,8 +986,11 @@ Example formats I can parse:
           </div>
           <div class="harvest-input-group">
             <label class="harvest-label">DBAs to Track (comma-separated)</label>
-            <input type="text" class="harvest-input" id="harvest-dbas" placeholder="Rakesh, Pete, Ra, Ralph, Julia, Sunny, Charles, Greg, Matt, Jeff, John W, Ritesh, Rich, John J, Gary, Kevin, Nick, Nitin, Gabriel">
-            <div class="harvest-small-text">Enter the names exactly as they appear in Harvest (or use first names)</div>
+            <div style="display: flex; gap: 8px;">
+              <input type="text" class="harvest-input" id="harvest-dbas" placeholder="Charles Collier, Gary Shifflett, Gregory Mays, Jeffery Sparrow, Jennifer Frayser, John Joseph, John Whitehead, Julia Rispoli, Karen Inman, Kevin Wang, Lawrence Walkin, Matt Edwards, Nick Nicoll, Nitin Ghai, Oleksii Filipov, Pete Miller, Ra Osolage, Rakesh Gujar, Ralph Mast, Rich Ford, Ritesh Kumar, Sunny Goswami" style="flex: 1;">
+              <button class="harvest-refresh-btn" onclick="showManageDBAs()" style="padding: 8px 16px; white-space: nowrap;">Manage List</button>
+            </div>
+            <div class="harvest-small-text">Full team list from Harvest (22 people) - click "Manage List" to add/remove people anytime</div>
           </div>
           <button class="harvest-connect-btn" onclick="connectHarvest()">Connect & Load Data</button>
         </div>
@@ -1106,6 +1109,32 @@ Example formats I can parse:
     <div class="editor-buttons">
       <button class="save-btn" id="client-save-btn" onclick="saveClient()">Add Client</button>
       <button class="cancel-btn" onclick="closeClientModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- DBA Management Modal -->
+<div class="modal" id="dba-modal">
+  <div class="modal-content" style="max-width: 600px;">
+    <div class="modal-header">Manage DBA List</div>
+    <div class="modal-body">
+      <div style="margin-bottom: 12px;">
+        <label class="harvest-label">Current DBAs (one per line)</label>
+        <textarea id="dba-list-textarea" class="harvest-input" style="min-height: 200px; font-family: 'Barlow', sans-serif; font-size: 0.9rem; line-height: 1.6;"></textarea>
+        <div class="harvest-small-text">Enter one name per line. Changes save automatically.</div>
+      </div>
+      <div style="background: var(--gray-light); padding: 12px; border-radius: 6px; font-size: 0.85rem; color: var(--navy-mid);">
+        <strong>Tips:</strong>
+        <ul style="margin: 8px 0 0 20px; line-height: 1.8;">
+          <li>Add new person: Type their name on a new line</li>
+          <li>Remove person: Delete their line</li>
+          <li>Use exact names from Harvest for best matching</li>
+        </ul>
+      </div>
+    </div>
+    <div class="editor-buttons">
+      <button class="save-btn" onclick="saveDBAs()">Save Changes</button>
+      <button class="cancel-btn" onclick="closeDBAModal()">Cancel</button>
     </div>
   </div>
 </div>
@@ -1317,7 +1346,9 @@ function renderClientCard(clientId) {
               <span class="client-action-icon delete" onclick="deleteClient('${clientId}')" title="Delete client">🗑️</span>
             </div>
           </div>
-          <div class="client-owner">Owner: ${client.owner}</div>
+          <div class="client-owner" onclick="toggleClientOwner('${clientId}')" style="cursor: pointer;" title="Click to switch owner">
+            Owner: ${client.owner} 🔄
+          </div>
         </div>
         <div class="status-badge ${client.status}" onclick="cycleStatus('${clientId}')" title="Click to change status">
           ${client.status}
@@ -1618,6 +1649,43 @@ function parseOutlookNotes() {
   }
 }
 
+// DBA Management
+function showManageDBAs() {
+  const currentDBAs = document.getElementById('harvest-dbas').value || harvestData.dbas.join(', ') || '';
+  const dbaArray = currentDBAs.split(',').map(name => name.trim()).filter(name => name);
+  
+  document.getElementById('dba-list-textarea').value = dbaArray.join('\n');
+  document.getElementById('dba-modal').classList.add('active');
+}
+
+function saveDBAs() {
+  const textarea = document.getElementById('dba-list-textarea').value;
+  const dbaArray = textarea.split('\n').map(name => name.trim()).filter(name => name);
+  
+  if (dbaArray.length === 0) {
+    alert('Please enter at least one DBA name');
+    return;
+  }
+  
+  // Update the input field
+  document.getElementById('harvest-dbas').value = dbaArray.join(', ');
+  
+  // Update harvestData
+  harvestData.dbas = dbaArray;
+  
+  // Save to localStorage if already configured
+  if (harvestData.accountId && harvestData.token) {
+    localStorage.setItem('harvest-config', JSON.stringify(harvestData));
+  }
+  
+  closeDBAModal();
+  alert(`✓ DBA list updated! Now tracking ${dbaArray.length} people.`);
+}
+
+function closeDBAModal() {
+  document.getElementById('dba-modal').classList.remove('active');
+}
+
 // Harvest Integration
 let harvestMode = 'api'; // 'api' or 'csv'
 let harvestData = {
@@ -1909,6 +1977,20 @@ if (csvZone) {
 // Client management functions
 let editingClient = null;
 
+function toggleClientOwner(clientId) {
+  const client = dashboardData.clients[clientId];
+  
+  // Toggle between Angel Smith and Pamela Craven
+  if (client.owner === 'Angel Smith') {
+    client.owner = 'Pamela Craven';
+  } else {
+    client.owner = 'Angel Smith';
+  }
+  
+  saveData();
+  renderClients();
+}
+
 function showAddClient() {
   editingClient = null;
   document.getElementById('client-modal-title').textContent = 'Add New Client';
@@ -2058,6 +2140,12 @@ document.getElementById('edit-modal').addEventListener('click', function(e) {
 document.getElementById('client-modal').addEventListener('click', function(e) {
   if (e.target === this) {
     closeClientModal();
+  }
+});
+
+document.getElementById('dba-modal').addEventListener('click', function(e) {
+  if (e.target === this) {
+    closeDBAModal();
   }
 });
 </script>
