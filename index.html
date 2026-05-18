@@ -993,16 +993,34 @@ Example formats I can parse:
         </div>
 
         <div class="harvest-data" id="harvest-data" style="display: none;">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 12px;">
-            <div style="display: flex; align-items: center; gap: 12px;">
-              <button class="harvest-refresh-btn" onclick="changeWeek(-1)" style="padding: 8px 12px;">← Previous Week</button>
-              <div style="font-size: 0.95rem; font-weight: 600; color: var(--navy);">
-                <span id="harvest-week"></span>
+          <div style="background: var(--gray-light); padding: 16px; border-radius: 6px; margin-bottom: 16px;">
+            <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+              <div style="flex: 1; min-width: 200px;">
+                <label style="display: block; font-size: 0.85rem; font-weight: 600; color: var(--navy-mid); margin-bottom: 4px;">Quick Navigation</label>
+                <div style="display: flex; gap: 8px;">
+                  <button class="harvest-refresh-btn" onclick="changeWeek(-1)" style="padding: 8px 12px; flex: 1;">← Prev Week</button>
+                  <button class="harvest-refresh-btn" onclick="changeWeek(1)" style="padding: 8px 12px; flex: 1;">Next Week →</button>
+                </div>
               </div>
-              <button class="harvest-refresh-btn" onclick="changeWeek(1)" style="padding: 8px 12px;">Next Week →</button>
+              <div style="flex: 1; min-width: 200px;">
+                <label style="display: block; font-size: 0.85rem; font-weight: 600; color: var(--navy-mid); margin-bottom: 4px;">Custom Date Range</label>
+                <div style="display: flex; gap: 8px;">
+                  <input type="date" class="harvest-input" id="custom-from-date" style="padding: 8px; flex: 1;">
+                  <input type="date" class="harvest-input" id="custom-to-date" style="padding: 8px; flex: 1;">
+                  <button class="harvest-refresh-btn" onclick="loadCustomRange()" style="padding: 8px 16px;">Go</button>
+                </div>
+              </div>
+              <div style="min-width: 120px;">
+                <label style="display: block; font-size: 0.85rem; font-weight: 600; color: var(--navy-mid); margin-bottom: 4px;">&nbsp;</label>
+                <button class="harvest-refresh-btn" onclick="refreshHarvestData()" style="background: var(--green); width: 100%;">🔄 Refresh</button>
+              </div>
             </div>
-            <button class="harvest-refresh-btn" onclick="refreshHarvestData()" style="background: var(--green);">🔄 Refresh</button>
           </div>
+          
+          <div style="font-size: 0.95rem; font-weight: 600; color: var(--navy); margin-bottom: 12px; text-align: center;">
+            <span id="harvest-week"></span>
+          </div>
+          
           <div id="harvest-hours-list">
             <!-- DBA hours will be populated here -->
           </div>
@@ -1603,6 +1621,7 @@ let harvestData = {
   connected: false
 };
 let currentWeekOffset = 0; // 0 = this week, -1 = last week, 1 = next week, etc.
+let customDateRange = null; // { from: 'YYYY-MM-DD', to: 'YYYY-MM-DD' }
 
 function getWeekDates(offset = 0) {
   const today = new Date();
@@ -1624,7 +1643,27 @@ function getWeekDates(offset = 0) {
 }
 
 function changeWeek(direction) {
+  customDateRange = null; // Clear custom range when using week navigation
   currentWeekOffset += direction;
+  refreshHarvestData();
+}
+
+function loadCustomRange() {
+  const fromDate = document.getElementById('custom-from-date').value;
+  const toDate = document.getElementById('custom-to-date').value;
+  
+  if (!fromDate || !toDate) {
+    alert('Please select both start and end dates');
+    return;
+  }
+  
+  if (new Date(fromDate) > new Date(toDate)) {
+    alert('Start date must be before end date');
+    return;
+  }
+  
+  customDateRange = { from: fromDate, to: toDate };
+  currentWeekOffset = 0; // Reset week offset when using custom range
   refreshHarvestData();
 }
 
@@ -1677,8 +1716,19 @@ async function refreshHarvestData() {
   }
   
   try {
-    // Get the week dates based on current offset
-    const { monday, sunday, fromDate, toDate } = getWeekDates(currentWeekOffset);
+    // Get the date range - either custom or week-based
+    let fromDate, toDate;
+    
+    if (customDateRange) {
+      // Use custom date range
+      fromDate = customDateRange.from;
+      toDate = customDateRange.to;
+    } else {
+      // Use week navigation
+      const weekDates = getWeekDates(currentWeekOffset);
+      fromDate = weekDates.fromDate;
+      toDate = weekDates.toDate;
+    }
     
     // Fetch time entries from Harvest API
     const response = await fetch(
