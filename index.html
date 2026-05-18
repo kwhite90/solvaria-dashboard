@@ -901,86 +901,6 @@ Example formats I can parse:
     </div>
   </div>
 
-  <!-- Harvest Integration -->
-  <div class="harvest-section">
-    <div class="harvest-header">
-      <div class="harvest-title">⏱️ Harvest Time Tracking</div>
-      <div class="harvest-toggle">
-        <button class="toggle-btn active" id="api-toggle" onclick="switchHarvestMode('api')">API Integration</button>
-        <button class="toggle-btn" id="csv-toggle" onclick="switchHarvestMode('csv')">CSV Import</button>
-      </div>
-    </div>
-
-    <!-- API Integration Mode -->
-    <div class="harvest-content active" id="api-content">
-      <div class="harvest-setup" id="harvest-setup">
-        <div class="harvest-setup-title">Connect to Harvest</div>
-        <div class="harvest-input-group">
-          <label class="harvest-label">Harvest Account ID</label>
-          <input type="text" class="harvest-input" id="harvest-account-id" placeholder="e.g., 1234567">
-          <div class="harvest-small-text">Find this in Harvest under Settings → Account & Billing</div>
-        </div>
-        <div class="harvest-input-group">
-          <label class="harvest-label">Personal Access Token</label>
-          <input type="password" class="harvest-input" id="harvest-token" placeholder="Your Harvest API token">
-          <div class="harvest-small-text">Create in Harvest: Settings → Developers → Personal Access Tokens</div>
-        </div>
-        <div class="harvest-input-group">
-          <label class="harvest-label">DBAs to Track (comma-separated)</label>
-          <input type="text" class="harvest-input" id="harvest-dbas" placeholder="e.g., Ra, Pete, JJ, Charles, Sunny, Rakesh, Julia">
-          <div class="harvest-small-text">Enter the names exactly as they appear in Harvest</div>
-        </div>
-        <button class="harvest-connect-btn" onclick="connectHarvest()">Connect & Load Data</button>
-      </div>
-
-      <div class="harvest-data" id="harvest-data" style="display: none;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-          <div style="font-size: 0.9rem; color: var(--gray-mid);">
-            Showing hours for week of <span id="harvest-week"></span>
-          </div>
-          <button class="harvest-refresh-btn" onclick="refreshHarvestData()">🔄 Refresh Data</button>
-        </div>
-        <div id="harvest-hours-list">
-          <!-- DBA hours will be populated here -->
-        </div>
-      </div>
-    </div>
-
-    <!-- CSV Import Mode -->
-    <div class="harvest-content" id="csv-content">
-      <div style="margin-bottom: 16px;">
-        <div style="font-size: 0.9rem; color: var(--navy-mid); margin-bottom: 8px;">
-          <strong>How to export from Harvest:</strong>
-        </div>
-        <ol style="font-size: 0.85rem; color: var(--gray-mid); line-height: 1.8; margin-left: 20px;">
-          <li>Go to Harvest → Reports → Time Reports</li>
-          <li>Select date range (usually "This Week")</li>
-          <li>Filter by your DBAs if needed</li>
-          <li>Click "Export" → "CSV"</li>
-          <li>Upload the CSV file below</li>
-        </ol>
-      </div>
-
-      <div class="csv-upload-zone" id="csv-upload-zone" onclick="document.getElementById('csv-file-input').click()">
-        <div class="upload-icon">📄</div>
-        <div class="upload-text">Click to upload or drag & drop</div>
-        <div class="upload-subtext">Harvest CSV export file</div>
-      </div>
-      <input type="file" id="csv-file-input" accept=".csv" style="display: none;" onchange="handleCSVUpload(event)">
-
-      <div class="harvest-data" id="csv-harvest-data" style="display: none; margin-top: 20px;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-          <div style="font-size: 0.9rem; color: var(--gray-mid);">
-            Showing hours from uploaded CSV
-          </div>
-        </div>
-        <div id="csv-hours-list">
-          <!-- DBA hours will be populated here -->
-        </div>
-      </div>
-    </div>
-  </div>
-
   <!-- Summary Cards -->
   <div class="summary-grid">
     <div class="summary-card angel">
@@ -1015,6 +935,7 @@ Example formats I can parse:
     <button class="tab active" onclick="switchTab('angel')">Angel's Clients</button>
     <button class="tab" onclick="switchTab('pamela')">Pamela's Clients</button>
     <button class="tab" onclick="switchTab('all')">All Priorities</button>
+    <button class="tab" onclick="switchTab('time')">Time Tracking</button>
   </div>
 
   <!-- Angel's Clients Tab -->
@@ -1035,6 +956,92 @@ Example formats I can parse:
   <div id="all-tab" class="tab-content">
     <div class="client-grid" id="all-grid">
       <!-- All clients will be rendered here -->
+    </div>
+  </div>
+
+  <!-- Time Tracking Tab -->
+  <div id="time-tab" class="tab-content">
+    <div class="harvest-section" style="margin: 0;">
+      <div class="harvest-header">
+        <div class="harvest-title">⏱️ Harvest Time Tracking</div>
+        <div class="harvest-toggle">
+          <button class="toggle-btn active" id="api-toggle" onclick="switchHarvestMode('api')">API Integration</button>
+          <button class="toggle-btn" id="csv-toggle" onclick="switchHarvestMode('csv')">CSV Import</button>
+        </div>
+      </div>
+
+      <!-- API Integration Mode -->
+      <div class="harvest-content active" id="api-content">
+        <div class="harvest-setup" id="harvest-setup">
+          <div class="harvest-setup-title">Connect to Harvest</div>
+          <div class="harvest-input-group">
+            <label class="harvest-label">Harvest Account ID</label>
+            <input type="text" class="harvest-input" id="harvest-account-id" placeholder="e.g., 1234567">
+            <div class="harvest-small-text">Find this in Harvest under Settings → Account & Billing</div>
+          </div>
+          <div class="harvest-input-group">
+            <label class="harvest-label">Personal Access Token</label>
+            <input type="password" class="harvest-input" id="harvest-token" placeholder="Your Harvest API token">
+            <div class="harvest-small-text">Create in Harvest: Settings → Developers → Personal Access Tokens</div>
+          </div>
+          <div class="harvest-input-group">
+            <label class="harvest-label">DBAs to Track (comma-separated)</label>
+            <input type="text" class="harvest-input" id="harvest-dbas" placeholder="Rakesh, Pete, Ra, Ralph, Julia, Sunny, Charles, Greg, Matt, Jeff, John W, Ritesh, Rich, John J, Gary, Kevin, Nick, Nitin, Gabriel">
+            <div class="harvest-small-text">Enter the names exactly as they appear in Harvest (or use first names)</div>
+          </div>
+          <button class="harvest-connect-btn" onclick="connectHarvest()">Connect & Load Data</button>
+        </div>
+
+        <div class="harvest-data" id="harvest-data" style="display: none;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 12px;">
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <button class="harvest-refresh-btn" onclick="changeWeek(-1)" style="padding: 8px 12px;">← Previous Week</button>
+              <div style="font-size: 0.95rem; font-weight: 600; color: var(--navy);">
+                <span id="harvest-week"></span>
+              </div>
+              <button class="harvest-refresh-btn" onclick="changeWeek(1)" style="padding: 8px 12px;">Next Week →</button>
+            </div>
+            <button class="harvest-refresh-btn" onclick="refreshHarvestData()" style="background: var(--green);">🔄 Refresh</button>
+          </div>
+          <div id="harvest-hours-list">
+            <!-- DBA hours will be populated here -->
+          </div>
+        </div>
+      </div>
+
+      <!-- CSV Import Mode -->
+      <div class="harvest-content" id="csv-content">
+        <div style="margin-bottom: 16px;">
+          <div style="font-size: 0.9rem; color: var(--navy-mid); margin-bottom: 8px;">
+            <strong>How to export from Harvest:</strong>
+          </div>
+          <ol style="font-size: 0.85rem; color: var(--gray-mid); line-height: 1.8; margin-left: 20px;">
+            <li>Go to Harvest → Reports → Time Reports</li>
+            <li>Select date range (usually "This Week")</li>
+            <li>Filter by your DBAs if needed</li>
+            <li>Click "Export" → "CSV"</li>
+            <li>Upload the CSV file below</li>
+          </ol>
+        </div>
+
+        <div class="csv-upload-zone" id="csv-upload-zone" onclick="document.getElementById('csv-file-input').click()">
+          <div class="upload-icon">📄</div>
+          <div class="upload-text">Click to upload or drag & drop</div>
+          <div class="upload-subtext">Harvest CSV export file</div>
+        </div>
+        <input type="file" id="csv-file-input" accept=".csv" style="display: none;" onchange="handleCSVUpload(event)">
+
+        <div class="harvest-data" id="csv-harvest-data" style="display: none; margin-top: 20px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+            <div style="font-size: 0.9rem; color: var(--gray-mid);">
+              Showing hours from uploaded CSV
+            </div>
+          </div>
+          <div id="csv-hours-list">
+            <!-- DBA hours will be populated here -->
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </main>
@@ -1595,6 +1602,31 @@ let harvestData = {
   dbas: [],
   connected: false
 };
+let currentWeekOffset = 0; // 0 = this week, -1 = last week, 1 = next week, etc.
+
+function getWeekDates(offset = 0) {
+  const today = new Date();
+  today.setDate(today.getDate() + (offset * 7)); // Adjust by number of weeks
+  
+  const dayOfWeek = today.getDay();
+  const monday = new Date(today);
+  monday.setDate(today.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1));
+  
+  const sunday = new Date(monday);
+  sunday.setDate(monday.getDate() + 6);
+  
+  return {
+    monday: monday,
+    sunday: sunday,
+    fromDate: monday.toISOString().split('T')[0],
+    toDate: sunday.toISOString().split('T')[0]
+  };
+}
+
+function changeWeek(direction) {
+  currentWeekOffset += direction;
+  refreshHarvestData();
+}
 
 function switchHarvestMode(mode) {
   harvestMode = mode;
@@ -1645,16 +1677,8 @@ async function refreshHarvestData() {
   }
   
   try {
-    // Get current week's Monday and Sunday
-    const today = new Date();
-    const dayOfWeek = today.getDay();
-    const monday = new Date(today);
-    monday.setDate(today.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1));
-    const sunday = new Date(monday);
-    sunday.setDate(monday.getDate() + 6);
-    
-    const fromDate = monday.toISOString().split('T')[0];
-    const toDate = sunday.toISOString().split('T')[0];
+    // Get the week dates based on current offset
+    const { monday, sunday, fromDate, toDate } = getWeekDates(currentWeekOffset);
     
     // Fetch time entries from Harvest API
     const response = await fetch(
@@ -1783,7 +1807,14 @@ function displayHarvestHours(hoursMap, fromDate, toDate, isCsv = false) {
   
   // Update week display for API mode
   if (!isCsv && fromDate && toDate) {
-    const weekText = `${new Date(fromDate).toLocaleDateString()} - ${new Date(toDate).toLocaleDateString()}`;
+    const from = new Date(fromDate);
+    const to = new Date(toDate);
+    
+    const options = { month: 'short', day: 'numeric' };
+    const fromFormatted = from.toLocaleDateString('en-US', options);
+    const toFormatted = to.toLocaleDateString('en-US', options);
+    
+    const weekText = `${fromFormatted} - ${toFormatted}`;
     document.getElementById('harvest-week').textContent = weekText;
   }
 }
